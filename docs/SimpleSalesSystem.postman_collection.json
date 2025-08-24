@@ -2,7 +2,7 @@
   "info": {
     "name": "Simple Sales System",
     "_postman_id": "12345678-abcd-efgh-ijkl-1234567890ab",
-    "description": "Postman collection for testing Products, Clients, and Sales APIs",
+    "description": "Postman collection for testing Products, Clients, Sales, and Logs APIs",
     "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
   },
   "item": [
@@ -13,7 +13,6 @@
           "name": "Get All Products",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
               "raw": "http://localhost:8080/api/products",
               "protocol": "http",
@@ -68,7 +67,6 @@
           "name": "Get All Clients",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
               "raw": "http://localhost:8080/api/clients",
               "protocol": "http",
@@ -103,7 +101,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"firstName\": \"Ali\",\n  \"lastName\": \"Hassan\",\n  \"mobile\": \"96176345678\"\n}"
+              "raw": "{\n  \"firstName\": \"Muhammad\",\n  \"lastName\": \"Itani\",\n  \"mobile\": \"96176345678\"\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/clients/1",
@@ -123,7 +121,6 @@
           "name": "Get All Sales",
           "request": {
             "method": "GET",
-            "header": [],
             "url": {
               "raw": "http://localhost:8080/api/sales",
               "protocol": "http",
@@ -140,7 +137,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"clientId\": 1,\n  \"transactions\": [\n    { \"productId\": 1, \"quantity\": 2 },\n    { \"productId\": 2, \"quantity\": 1 }\n  ]\n}"
+              "raw": "{\n  \"clientId\": 1,\n  \"transactions\": [\n    { \"productId\": 1, \"quantity\": 2, \"price\": 4.75 },\n    { \"productId\": 2, \"quantity\": 1 }\n  ]\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/sales",
@@ -158,7 +155,7 @@
             "header": [{ "key": "Content-Type", "value": "application/json" }],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"clientId\": 1,\n  \"transactions\": [\n    { \"productId\": 1, \"quantity\": 3 },\n    { \"productId\": 2, \"quantity\": 2 }\n  ]\n}"
+              "raw": "{\n  \"clientId\": 1,\n  \"transactions\": [\n    { \"productId\": 1, \"quantity\": 3, \"price\": 4.25 },\n    { \"productId\": 2, \"quantity\": 2 }\n  ]\n}"
             },
             "url": {
               "raw": "http://localhost:8080/api/sales/1",
@@ -166,6 +163,24 @@
               "host": ["localhost"],
               "port": "8080",
               "path": ["api", "sales", "1"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Logs",
+      "item": [
+        {
+          "name": "Get All Logs",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "http://localhost:8080/api/logs",
+              "protocol": "http",
+              "host": ["localhost"],
+              "port": "8080",
+              "path": ["api", "logs"]
             }
           }
         }

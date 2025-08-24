@@ -6,14 +6,8 @@ import com.ag.simplesalessystem.dto.response.ClientResponse;
 import com.ag.simplesalessystem.dto.response.ProductResponse;
 import com.ag.simplesalessystem.dto.response.SaleResponse;
 import com.ag.simplesalessystem.dto.response.SaleTransactionResponse;
-import com.ag.simplesalessystem.entity.Client;
-import com.ag.simplesalessystem.entity.Product;
-import com.ag.simplesalessystem.entity.Sale;
-import com.ag.simplesalessystem.entity.SaleTransaction;
-import com.ag.simplesalessystem.repository.ClientRepository;
-import com.ag.simplesalessystem.repository.ProductRepository;
-import com.ag.simplesalessystem.repository.SaleRepository;
-import com.ag.simplesalessystem.repository.SaleTransactionRepository;
+import com.ag.simplesalessystem.entity.*;
+import com.ag.simplesalessystem.repository.*;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,15 +22,18 @@ public class SaleServiceImpl implements SaleService {
     private final SaleTransactionRepository transactionRepository;
     private final ClientRepository clientRepository;
     private final ProductRepository productRepository;
+    private final SaleTransactionLogRepository logRepository;
 
     public SaleServiceImpl(SaleRepository saleRepository,
                            SaleTransactionRepository transactionRepository,
                            ClientRepository clientRepository,
-                           ProductRepository productRepository) {
+                           ProductRepository productRepository,
+                           SaleTransactionLogRepository logRepository) {
         this.saleRepository = saleRepository;
         this.transactionRepository = transactionRepository;
         this.clientRepository = clientRepository;
         this.productRepository = productRepository;
+        this.logRepository = logRepository;
     }
 
     @Override
@@ -57,7 +54,7 @@ public class SaleServiceImpl implements SaleService {
 
         Sale savedSale = saleRepository.save(sale);
 
-        BigDecimal total = saveTransactions(savedSale, request.transactions());
+        BigDecimal total = saveTransactions(savedSale, request.transactions(), false);
 
         return mapToResponse(savedSale, total);
     }
@@ -67,31 +64,57 @@ public class SaleServiceImpl implements SaleService {
         Sale sale = saleRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sale not found"));
 
-        transactionRepository.deleteAll(sale.getTransactions());
-
-        BigDecimal total = saveTransactions(sale, request.transactions());
+        // Don’t delete all transactions → update existing ones and log changes
+        BigDecimal total = saveTransactions(sale, request.transactions(), true);
 
         return mapToResponse(sale, total);
     }
-
-    private BigDecimal saveTransactions(Sale sale, List<SaleTransactionRequest> requests) {
+    
+    private BigDecimal saveTransactions(Sale sale, List<SaleTransactionRequest> requests, boolean isUpdate) {
         BigDecimal total = BigDecimal.ZERO;
 
         for (SaleTransactionRequest tReq : requests) {
             Product product = productRepository.findById(tReq.productId())
                     .orElseThrow(() -> new RuntimeException("Product not found"));
 
-            SaleTransaction transaction = new SaleTransaction();
-            transaction.setSale(sale);
-            transaction.setProduct(product);
-            transaction.setQuantity(tReq.quantity());
+            // Decide price: take from request if provided, else from product
+            BigDecimal finalPrice = (tReq.price() != null) ? tReq.price() : product.getPrice();
 
-            transaction.setPrice(product.getPrice());
+            SaleTransaction existing = sale.getTransactions().stream()
+                    .filter(tx -> tx.getProduct().getId().equals(product.getId()))
+                    .findFirst()
+                    .orElse(null);
 
-            transactionRepository.save(transaction);
+            if (existing != null && isUpdate) {
+                // log old values
+                SaleTransactionLog log = new SaleTransactionLog();
+                log.setSaleTransaction(existing);
+                log.setOldQuantity(existing.getQuantity());
+                log.setNewQuantity(tReq.quantity());
+                log.setOldPrice(existing.getPrice());
+                log.setNewPrice(finalPrice);
+                log.setUpdatedAt(java.time.LocalDateTime.now());
 
-            total = total.add(product.getPrice()
-                    .multiply(BigDecimal.valueOf(tReq.quantity())));
+                logRepository.save(log);
+
+                // update values
+                existing.setQuantity(tReq.quantity());
+                existing.setPrice(finalPrice);
+
+                transactionRepository.save(existing);
+            } else if (existing == null) {
+                // new transaction
+                SaleTransaction transaction = new SaleTransaction();
+                transaction.setSale(sale);
+                transaction.setProduct(product);
+                transaction.setQuantity(tReq.quantity());
+                transaction.setPrice(finalPrice);
+
+                transactionRepository.save(transaction);
+                sale.getTransactions().add(transaction);
+            }
+
+            total = total.add(finalPrice.multiply(BigDecimal.valueOf(tReq.quantity())));
         }
 
         return total;
