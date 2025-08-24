@@ -4,6 +4,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.math.BigDecimal;
 import java.time.LocalDateTime;
 
 @Entity
@@ -15,12 +16,19 @@ public class SaleTransactionLog {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(nullable = false)
     private int oldQuantity;
+
+    @Column(nullable = false)
     private int newQuantity;
 
-    private Double oldPrice;
-    private Double newPrice;
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal oldPrice;
 
+    @Column(nullable = false, precision = 10, scale = 2)
+    private BigDecimal newPrice;
+
+    @Column(nullable = false)
     private LocalDateTime updatedAt = LocalDateTime.now();
 
     @ManyToOne
